@@ -1,74 +1,76 @@
 <script setup>
 import {RouterView, RouterLink} from 'vue-router'
-import { ref } from 'vue'
-import { authState } from './storage/user.js'
+import { ref, watch } from 'vue'
+import { authState, userData } from './storage/user.js'
+import {axios, csrf} from './axios.js'
+import router from './router'
 
-const profilePicture = ref("/images/profiles/ref.jpg")
-const isLoggedIn = ref(authState.isLoggedIn)
+const profilePicture = ref("/images/profiles/profile.webp")
 
-const permute = ()=> {
-  isLoggedIn.value = !isLoggedIn.value
-  authState.isLoggedIn = isLoggedIn.value
+const checkAuthUser = async ()=>{
+  const {data} = await axios.get('/api/users/check');
+  authState.value = data.is_authenticated;
+  if(authState.value){
+    const data1 = await axios.get('/api/users');
+
+    userData.value.id = data1.data.id;
+    userData.value.name = data1.data.name;
+    userData.value.email = data1.data.email;
+    userData.value.created_at = data1.data.created_at;
+    userData.value.updated_at = data1.data.updated_at;
+    
+    const x = (data1.data.profile_picture === "") ?
+      "/images/profiles/profile.webp":
+      data1.data.profile_picture;
+    profilePicture.value = x;
+    userData.value.profile_picture = x;
+  }
 }
 
-const showNav = ref(true)
+checkAuthUser();
+
+const permute = ()=> {
+  authState.value = !authState.value
+}
+
+const logout = async ()=>{
+  await axios.get('/api/auth/logout');
+  userData.value.id = null;
+  userData.value.name = null;
+  userData.value.token = null;
+//  axios.defaults.headers['Authorization'] = null
+  permute()
+}
+
+const showNav = ref(false)
 </script>
 
 <template>
   <div>
     <nav v-if="showNav">
-      <img :src="profilePicture">
+      <div v-if="authState">
+        <img class="profilePicture" :src="profilePicture">
+        <span >{{ userData.name }}</span>
+      </div>
       <div>
-        <RouterLink to="/">Inicio</RouterLink>
-        <RouterLink to="/ejercicios">Ejercicios</RouterLink>
-        <RouterLink to="/planes">Planes</RouterLink>
-        <RouterLink to="/perseverancia">Perseverancia</RouterLink>
-        <RouterLink to="/login">Login</RouterLink>
-        <RouterLink to="/logout">Logout</RouterLink>
+        <RouterLink class="button" to="/">Inicio</RouterLink>
+        <RouterLink class="button" to="/ejercicios">Ejercicios</RouterLink>
+        <RouterLink class="button" to="/planes">Planes</RouterLink>
+        <RouterLink class="button" to="/perseverancia">Perseverancia</RouterLink>
+        <RouterLink class="button" v-if="!authState" to="/login">Login</RouterLink>
+          <RouterLink class="button" v-if="!authState" to="/register">Registrarme</RouterLink>
+        <button class="button" v-else @click="logout">Logout</button>
       </div>
     </nav>
-    <button @click="showNav=!showNav">Nav</button>
-    <RouterView/>
+    <button class="show-nav" @click="showNav=!showNav">
+      <svg viewBox="0 0 100 80" width="10" height="10">
+        <rect width="100" height="20"></rect>
+        <rect y="30" width="100" height="20"></rect>
+        <rect y="60" width="100" height="20"></rect>
+      </svg>
+    </button>
+    <main>
+      <RouterView/>
+    </main>
   </div>  
 </template>
-
-<style scoped>
-nav{
-  position: fixed;
-  float:left;
-  left:0;
-  top:0;
-  width:30vw;
-  height: 100%;
-  box-shadow: 0px 4px 16px rgba(0, 0, 0, 125) ;
-  border-radius: 0 16px 16px 0;
-  background-color:#fff;
-  overflow:hidden;
-}
-
-nav>img{
-  width:128px;
-  height:128px;
-  margin-top: 12px;
-  border-radius:100%;
-  object-fit: cover;
-  border: 4px solid green;
-}
-
-nav>div{
-  margin:0.5em;
-  padding:0px;
-  display: flex;
-  flex-direction: column;
-  overflow-y: scroll;
-  scroll-behavior: smooth;
-}
-
-nav>div>a{
-  border-radius:8px;
-  background-color:green;
-  color:white;
-  padding:0.5em 0;
-  margin: 0.5em;
-}
-</style>

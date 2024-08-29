@@ -3,6 +3,10 @@
 	<div>
 		<form action="" @submit.prevent="submit">
 			<div>
+				<label for="name">Nombre</label>
+				<input type="text" name="name" id="name" v-model="user.name">
+			</div>
+			<div>
 				<label for="email">Email</label>
 				<input type="email" name="email" id="email" v-model="user.email">
 			</div>
@@ -22,20 +26,19 @@
 	import router from '../router';
 
 	const user = ref({
-					email:'danielcanache7894@gmail.com',
-					password:'12345678'
+					email:'',
+					password:'',
+					name:''
 				});
 
 	const submit = async ()=>{
 		csrf();
-		const {data} = await axios.post('/api/auth', user.value);
+		const {data} = await axios.post('/api/users', user.value);
+		if(data === "Registrado Correctamente"){
+			router.push('/login')
+		}else{
+			alert(data)
+		}
 
-		userData.value.id = data.user.id;
-		userData.value.name = data.user.name;
-		userData.value.token = data.token;
-		//axios.defaults.headers['Authorization'] = 'Bearer ' + userData.value.token
-		console.log(userData.value)
-		authState.value = true;
-		router.push('/')
 	}
 </script>
